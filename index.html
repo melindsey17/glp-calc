@@ -1,334 +1,470 @@
-import { useState, useMemo } from 'react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Obesity MNT Calculator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f8fafc;
+    color: #1e293b;
+    padding: 24px 16px;
+  }
+  .container { max-width: 640px; margin: 0 auto; }
+  .header { text-align: center; margin-bottom: 24px; }
+  .header h1 { font-size: 22px; font-weight: 700; }
+  .header p { font-size: 14px; color: #64748b; margin-top: 4px; }
 
-export default function ObesityMNTCalculator() {
-  const [sex, setSex] = useState('female');
-  const [age, setAge] = useState('');
-  const [heightFt, setHeightFt] = useState('');
-  const [heightIn, setHeightIn] = useState('');
-  const [weightLb, setWeightLb] = useState('');
-  const [geriatric, setGeriatric] = useState(false);
-  const [onGLP, setOnGLP] = useState(false);
-  const [activityLevel, setActivityLevel] = useState('1.3');
-  const [goal, setGoal] = useState('loss');
-  const [deficitChoice, setDeficitChoice] = useState('500');
+  .card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 12px;
+  }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 
-  const results = useMemo(() => {
-    const ageNum = parseFloat(age);
-    const ftNum = parseFloat(heightFt);
-    const inNum = parseFloat(heightIn) || 0;
-    const wtLbNum = parseFloat(weightLb);
+  label.field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #475569;
+    margin-bottom: 4px;
+  }
+  input[type="number"], select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+  }
+  input[type="number"]:focus, select:focus {
+    outline: none;
+    border-color: #14b8a6;
+    box-shadow: 0 0 0 2px rgba(20,184,166,0.2);
+  }
 
-    if (!ageNum || !ftNum || !wtLbNum) return null;
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .checkbox-row:hover { background: #f8fafc; }
+  .checkbox-row input { width: 16px; height: 16px; accent-color: #0d9488; }
 
-    const totalInches = ftNum * 12 + inNum;
-    const heightCm = totalInches * 2.54;
-    const abwKg = wtLbNum * 0.453592;
+  .mb-3 { margin-bottom: 12px; }
 
-    // IBW (Hamwi) in lb, then kg
-    const inchesOver5ft = Math.max(totalInches - 60, 0);
-    const ibwLb = sex === 'male'
-      ? 106 + 6 * inchesOver5ft
-      : 100 + 5 * inchesOver5ft;
-    const ibwKg = ibwLb * 0.453592;
+  .section-energy { background: #f0fdfa; border-color: #99f6e4; }
+  .section-protein { background: #faf5ff; border-color: #e9d5ff; }
+  .section-fluid { background: #eff6ff; border-color: #bfdbfe; }
 
-    const bmi = (wtLbNum / (totalInches * totalInches)) * 703;
+  .section-energy h3 { color: #115e59; }
+  .section-protein h3 { color: #6b21a8; }
+  .section-fluid h3 { color: #1e40af; }
 
-    // Adjusted body weight
-    const adjBWKg = ibwKg + 0.25 * (abwKg - ibwKg);
+  h3.step-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
 
-    // Decide which weight to use for energy
-    const useAdj = bmi >= 35;
-    const energyWeightKg = useAdj ? adjBWKg : abwKg;
-    const energyWeightLabel = useAdj ? 'Adjusted Body Weight' : 'Actual Body Weight';
+  .subnote { font-size: 12px; margin-bottom: 12px; }
+  .subnote-energy { color: #0f766e; }
+  .subnote-protein { color: #7e22ce; }
+  .subnote-fluid { color: #1d4ed8; }
 
-    // Mifflin-St Jeor
-    let bmr = sex === 'male'
-      ? (10 * energyWeightKg) + (6.25 * heightCm) - (5 * ageNum) + 5
-      : (10 * energyWeightKg) + (6.25 * heightCm) - (5 * ageNum) - 161;
+  .stat-box {
+    background: white;
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .stat-box .stat-label { font-size: 12px; color: #64748b; }
+  .stat-box .stat-value { font-size: 20px; font-weight: 700; color: #1e293b; }
+  .stat-box .stat-value.teal { color: #0f766e; }
+  .stat-box .stat-value.purple { color: #7e22ce; }
+  .stat-box .stat-value.blue { color: #1d4ed8; }
+  .stat-box .stat-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
 
-    const actFactor = parseFloat(activityLevel);
-    let maintenanceKcal = bmr * actFactor;
+  .deficit-btn {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 0;
+    border-radius: 8px;
+    border: 1px solid #5eead4;
+    background: white;
+    color: #0f766e;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .deficit-btn:hover { background: #ccfbf1; }
+  .deficit-btn.active {
+    background: #0d9488;
+    color: white;
+    border-color: #0d9488;
+  }
 
-    // Reduce 5-10% if BMI >= 35 (using midpoint 7.5%)
-    if (bmi >= 35) {
-      maintenanceKcal = maintenanceKcal * 0.925;
-    }
+  .alert {
+    font-size: 12px;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 8px;
+  }
+  .alert-amber { background: #fef3c7; color: #92400e; }
+  .alert-blue { background: #dbeafe; color: #1e40af; }
 
-    // Deficit applied only if goal is loss
-    const deficit = goal === 'loss' ? parseFloat(deficitChoice) : 0;
-    let targetKcal = maintenanceKcal - deficit;
+  .bmi-row { display: flex; justify-content: space-between; align-items: center; }
+  .bmi-value { font-size: 26px; font-weight: 700; }
+  .bmi-category { font-size: 14px; font-weight: 600; text-align: right; }
 
-    // Safety floor
-    const floor = sex === 'male' ? 1500 : 1200;
-    const floorApplied = goal === 'loss' && targetKcal < floor;
-    if (floorApplied) targetKcal = floor;
+  .weights-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f1f5f9;
+    text-align: center;
+  }
+  .weights-row .w-label { font-size: 11px; color: #94a3b8; }
+  .weights-row .w-value { font-size: 14px; font-weight: 600; color: #334155; }
 
-    // Protein calculations
-    const proteinLow_ABW = 1.2 * abwKg;
-    const proteinLow_IBW = 2.0 * ibwKg;
-    const proteinHigh_IBW = 2.5 * ibwKg;
+  .footnote {
+    font-size: 12px;
+    text-align: center;
+    color: #94a3b8;
+    padding-top: 8px;
+  }
 
-    // Determine recommended protein range based on flags
-    let proteinTargetLow, proteinTargetHigh, proteinNote;
-    if (bmi >= 40 || onGLP) {
-      proteinTargetLow = proteinLow_IBW;
-      proteinTargetHigh = proteinHigh_IBW;
-      proteinNote = onGLP
-        ? 'Higher end favored: on GLP-1 therapy (lean mass preservation with reduced intake)'
-        : 'Higher end favored: Class III obesity (higher protein needed for nitrogen balance)';
-    } else {
-      proteinTargetLow = Math.min(proteinLow_ABW, proteinLow_IBW);
-      proteinTargetHigh = Math.max(proteinLow_ABW, proteinLow_IBW);
-      proteinNote = 'Standard range for BMI 30–39 without additional risk factors';
-    }
+  .placeholder {
+    background: white;
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+    font-size: 14px;
+    color: #94a3b8;
+  }
 
-    // Fluid
-    const fluidWeightKg = bmi >= 40 ? adjBWKg : abwKg;
-    const fluidWeightLabel = bmi >= 40 ? 'Adjusted Body Weight' : 'Actual Body Weight';
-    const fluidLow = fluidWeightKg * 25;
-    const fluidHigh = fluidWeightKg * 35;
-    const fluidFromKcal = targetKcal * 1; // 1 mL per kcal
+  .hidden { display: none; }
+</style>
+</head>
+<body>
 
-    return {
-      bmi,
-      ibwLb,
-      ibwKg,
-      abwKg,
-      adjBWKg,
-      energyWeightKg,
-      energyWeightLabel,
-      bmr,
-      maintenanceKcal,
-      deficit,
-      targetKcal,
-      floorApplied,
-      floor,
-      proteinTargetLow,
-      proteinTargetHigh,
-      proteinNote,
-      fluidLow,
-      fluidHigh,
-      fluidFromKcal,
-      fluidWeightLabel,
-      useAdj,
-    };
-  }, [sex, age, heightFt, heightIn, weightLb, geriatric, onGLP, activityLevel, goal, deficitChoice]);
+<div class="container">
+  <div class="header">
+    <h1>Obesity MNT Calculator</h1>
+    <p>Outpatient Energy, Protein &amp; Fluid Estimator (BMI &ge;30)</p>
+  </div>
 
-  const bmiCategory = (bmi) => {
-    if (bmi < 30) return { label: 'Not obese (BMI <30) — general adult formulas may apply instead', color: 'text-amber-600' };
-    if (bmi < 35) return { label: 'Class I Obesity', color: 'text-blue-600' };
-    if (bmi < 40) return { label: 'Class II Obesity', color: 'text-orange-600' };
-    return { label: 'Class III Obesity (Severe)', color: 'text-red-600' };
-  };
-
-  const inputClass = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm";
-  const labelClass = "block text-xs font-medium text-slate-600 mb-1";
-
-  const deficitOptions = ['250', '500', '750', '1000'];
-
-  return (
-    <div className="min-h-screen bg-slate-50 py-6 px-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-6">
-          <h1 className="text-xl font-bold text-slate-800">Obesity MNT Calculator</h1>
-          <p className="text-sm text-slate-500">Outpatient Energy, Protein & Fluid Estimator (BMI ≥30)</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 mb-4">
-          <h2 className="text-sm font-semibold text-slate-700 mb-3">Patient Info</h2>
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <div>
-              <label className={labelClass}>Sex</label>
-              <select value={sex} onChange={(e) => setSex(e.target.value)} className={inputClass}>
-                <option value="female">Female</option>
-                <option value="male">Male</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Age (years)</label>
-              <input type="number" value={age} onChange={(e) => setAge(e.target.value)} className={inputClass} placeholder="e.g. 58" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 mb-3">
-            <div>
-              <label className={labelClass}>Height (ft)</label>
-              <input type="number" value={heightFt} onChange={(e) => setHeightFt(e.target.value)} className={inputClass} placeholder="5" />
-            </div>
-            <div>
-              <label className={labelClass}>Height (in)</label>
-              <input type="number" value={heightIn} onChange={(e) => setHeightIn(e.target.value)} className={inputClass} placeholder="7" />
-            </div>
-            <div>
-              <label className={labelClass}>Weight (lb)</label>
-              <input type="number" value={weightLb} onChange={(e) => setWeightLb(e.target.value)} className={inputClass} placeholder="245" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <label className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
-              <input type="checkbox" checked={geriatric} onChange={(e) => setGeriatric(e.target.checked)} className="w-4 h-4 accent-teal-600" />
-              <span className="text-sm text-slate-700">Geriatric (65+)</span>
-            </label>
-            <label className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
-              <input type="checkbox" checked={onGLP} onChange={(e) => setOnGLP(e.target.checked)} className="w-4 h-4 accent-teal-600" />
-              <span className="text-sm text-slate-700">On GLP-1 therapy</span>
-            </label>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass}>Activity Level</label>
-              <select value={activityLevel} onChange={(e) => setActivityLevel(e.target.value)} className={inputClass}>
-                <option value="1.2">Sedentary (1.2)</option>
-                <option value="1.3">Light activity (1.3)</option>
-                <option value="1.4">Moderate activity (1.4)</option>
-                <option value="1.5">Active (1.5)</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Goal</label>
-              <select value={goal} onChange={(e) => setGoal(e.target.value)} className={inputClass}>
-                <option value="loss">Weight loss</option>
-                <option value="maintain">Maintenance</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {results && (
-          <div className="space-y-4">
-            {/* BMI Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-xs text-slate-500">BMI</p>
-                  <p className="text-2xl font-bold text-slate-800">{results.bmi.toFixed(1)}</p>
-                </div>
-                <div className="text-right">
-                  <p className={`text-sm font-semibold ${bmiCategory(results.bmi).color}`}>
-                    {bmiCategory(results.bmi).label}
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-slate-100 text-center">
-                <div>
-                  <p className="text-xs text-slate-400">IBW</p>
-                  <p className="text-sm font-medium text-slate-700">{results.ibwLb.toFixed(0)} lb</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400">ABW</p>
-                  <p className="text-sm font-medium text-slate-700">{(results.abwKg / 0.453592).toFixed(0)} lb</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400">AdjBW</p>
-                  <p className="text-sm font-medium text-slate-700">{(results.adjBWKg / 0.453592).toFixed(0)} lb</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Energy Card */}
-            <div className="bg-teal-50 rounded-xl border border-teal-200 p-5">
-              <h3 className="text-sm font-bold text-teal-800 mb-2">STEP 1 — Energy</h3>
-              <p className="text-xs text-teal-700 mb-3">
-                Weight used: <span className="font-semibold">{results.energyWeightLabel}</span>
-                {results.useAdj && <span> (BMI ≥35 → 5–10% reduction applied)</span>}
-              </p>
-
-              <div className="bg-white rounded-lg p-3 mb-3">
-                <p className="text-xs text-slate-500">Maintenance kcal (TDEE)</p>
-                <p className="text-xl font-bold text-slate-800">{Math.round(results.maintenanceKcal)} kcal/day</p>
-              </div>
-
-              {goal === 'loss' && (
-                <>
-                  <p className="text-xs font-medium text-teal-800 mb-2">Choose a deficit:</p>
-                  <div className="grid grid-cols-4 gap-2 mb-3">
-                    {deficitOptions.map((opt) => (
-                      <button
-                        key={opt}
-                        onClick={() => setDeficitChoice(opt)}
-                        className={`text-xs font-semibold py-2 rounded-lg border transition-colors ${
-                          deficitChoice === opt
-                            ? 'bg-teal-600 text-white border-teal-600'
-                            : 'bg-white text-teal-700 border-teal-300 hover:bg-teal-100'
-                        }`}
-                      >
-                        −{opt}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="bg-white rounded-lg p-3">
-                    <p className="text-xs text-slate-500">Target kcal (maintenance − {deficitChoice})</p>
-                    <p className="text-lg font-bold text-teal-700">{Math.round(results.targetKcal)} kcal/day</p>
-                    <p className="text-xs text-slate-400 mt-1">≈ {(parseFloat(deficitChoice) * 7 / 3500).toFixed(1)} lb/week estimated loss</p>
-                  </div>
-                </>
-              )}
-
-              {results.floorApplied && (
-                <p className="text-xs bg-amber-100 text-amber-800 rounded-lg px-3 py-2 mt-2">
-                  ⚠ Selected deficit fell below the safety floor ({results.floor} kcal) — floor applied instead. Consider a smaller deficit or closer monitoring.
-                </p>
-              )}
-              {geriatric && goal === 'loss' && (
-                <p className="text-xs bg-blue-100 text-blue-800 rounded-lg px-3 py-2 mt-2">
-                  ℹ Geriatric: consider the smaller end of the deficit range (250–500 kcal) to protect against sarcopenia/frailty risk with weight loss.
-                </p>
-              )}
-            </div>
-
-            {/* Protein Card */}
-            <div className="bg-purple-50 rounded-xl border border-purple-200 p-5">
-              <h3 className="text-sm font-bold text-purple-800 mb-2">STEP 2 — Protein</h3>
-              <div className="bg-white rounded-lg p-3 mb-2">
-                <p className="text-xs text-slate-500">Target range</p>
-                <p className="text-lg font-bold text-purple-700">
-                  {Math.round(results.proteinTargetLow)}–{Math.round(results.proteinTargetHigh)} g/day
-                </p>
-              </div>
-              <p className="text-xs text-purple-700">{results.proteinNote}</p>
-              {geriatric && (
-                <p className="text-xs bg-blue-100 text-blue-800 rounded-lg px-3 py-2 mt-2">
-                  ℹ Geriatric: favor the higher end of range to counter age-related anabolic resistance and sarcopenia risk.
-                </p>
-              )}
-              <p className="text-xs text-slate-500 mt-2">Spread across meals/snacks — especially important if appetite is reduced (GLP-1) or meal volume is small.</p>
-            </div>
-
-            {/* Fluid Card */}
-            <div className="bg-blue-50 rounded-xl border border-blue-200 p-5">
-              <h3 className="text-sm font-bold text-blue-800 mb-2">STEP 3 — Fluid</h3>
-              <p className="text-xs text-blue-700 mb-3">
-                Weight used: <span className="font-semibold">{results.fluidWeightLabel}</span>
-                {results.bmi >= 40 && <span> (BMI ≥40)</span>}
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white rounded-lg p-3">
-                  <p className="text-xs text-slate-500">25–35 mL/kg</p>
-                  <p className="text-lg font-bold text-slate-800">{Math.round(results.fluidLow)}–{Math.round(results.fluidHigh)} mL</p>
-                </div>
-                <div className="bg-white rounded-lg p-3">
-                  <p className="text-xs text-slate-500">1 mL/kcal cross-check</p>
-                  <p className="text-lg font-bold text-blue-700">{Math.round(results.fluidFromKcal)} mL</p>
-                </div>
-              </div>
-              <p className="text-xs text-slate-500 mt-2">Adjust to thirst, urine color, edema — not just the number. Restrict per protocol if renal/cardiac/hepatic comorbidity present.</p>
-            </div>
-
-            <p className="text-xs text-center text-slate-400 pt-2">
-              Estimates only — clinical judgment, labs, and reassessment at follow-up override calculated values.
-            </p>
-          </div>
-        )}
-
-        {!results && (
-          <div className="bg-white rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-400">
-            Enter age, height, and weight to see calculations.
-          </div>
-        )}
+  <div class="card">
+    <h2>Patient Info</h2>
+    <div class="grid-2 mb-3">
+      <div>
+        <label class="field-label">Sex</label>
+        <select id="sex">
+          <option value="female">Female</option>
+          <option value="male">Male</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Age (years)</label>
+        <input type="number" id="age" placeholder="e.g. 58">
       </div>
     </div>
-  );
+
+    <div class="grid-3 mb-3">
+      <div>
+        <label class="field-label">Height (ft)</label>
+        <input type="number" id="heightFt" placeholder="5">
+      </div>
+      <div>
+        <label class="field-label">Height (in)</label>
+        <input type="number" id="heightIn" placeholder="7">
+      </div>
+      <div>
+        <label class="field-label">Weight (lb)</label>
+        <input type="number" id="weightLb" placeholder="245">
+      </div>
+    </div>
+
+    <div class="grid-2 mb-3">
+      <label class="checkbox-row">
+        <input type="checkbox" id="geriatric">
+        <span>Geriatric (65+)</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="onGLP">
+        <span>On GLP-1 therapy</span>
+      </label>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <label class="field-label">Activity Level</label>
+        <select id="activityLevel">
+          <option value="1.2">Sedentary (1.2)</option>
+          <option value="1.3" selected>Light activity (1.3)</option>
+          <option value="1.4">Moderate activity (1.4)</option>
+          <option value="1.5">Active (1.5)</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Goal</label>
+        <select id="goal">
+          <option value="loss">Weight loss</option>
+          <option value="maintain">Maintenance</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div id="placeholder" class="placeholder">
+    Enter age, height, and weight to see calculations.
+  </div>
+
+  <div id="results" class="hidden">
+
+    <div class="card">
+      <div class="bmi-row">
+        <div>
+          <p class="stat-label">BMI</p>
+          <p class="bmi-value" id="bmiValue">--</p>
+        </div>
+        <p class="bmi-category" id="bmiCategory">--</p>
+      </div>
+      <div class="weights-row">
+        <div>
+          <p class="w-label">IBW</p>
+          <p class="w-value" id="ibwOut">--</p>
+        </div>
+        <div>
+          <p class="w-label">ABW</p>
+          <p class="w-value" id="abwOut">--</p>
+        </div>
+        <div>
+          <p class="w-label">AdjBW</p>
+          <p class="w-value" id="adjbwOut">--</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card section-energy">
+      <h3 class="step-title">STEP 1 — Energy</h3>
+      <p class="subnote subnote-energy" id="energyWeightNote">--</p>
+
+      <div class="stat-box mb-3">
+        <p class="stat-label">Maintenance kcal (TDEE)</p>
+        <p class="stat-value" id="maintenanceOut">--</p>
+      </div>
+
+      <div id="deficitSection">
+        <p style="font-size:12px; font-weight:600; color:#115e59; margin-bottom:8px;">Choose a deficit:</p>
+        <div class="grid-4 mb-3" id="deficitButtons">
+          <button class="deficit-btn" data-val="250">−250</button>
+          <button class="deficit-btn active" data-val="500">−500</button>
+          <button class="deficit-btn" data-val="750">−750</button>
+          <button class="deficit-btn" data-val="1000">−1000</button>
+        </div>
+        <div class="stat-box">
+          <p class="stat-label" id="targetLabel">Target kcal (maintenance − 500)</p>
+          <p class="stat-value teal" id="targetOut">--</p>
+          <p class="stat-sub" id="lossRateOut">--</p>
+        </div>
+      </div>
+
+      <div id="floorAlert" class="alert alert-amber hidden"></div>
+      <div id="geriatricEnergyAlert" class="alert alert-blue hidden">
+        ℹ Geriatric: consider the smaller end of the deficit range (250–500 kcal) to protect against sarcopenia/frailty risk with weight loss.
+      </div>
+    </div>
+
+    <div class="card section-protein">
+      <h3 class="step-title">STEP 2 — Protein</h3>
+      <div class="stat-box mb-3">
+        <p class="stat-label">Target range</p>
+        <p class="stat-value purple" id="proteinRangeOut">--</p>
+      </div>
+      <p class="subnote subnote-protein" id="proteinNote">--</p>
+      <div id="geriatricProteinAlert" class="alert alert-blue hidden">
+        ℹ Geriatric: favor the higher end of range to counter age-related anabolic resistance and sarcopenia risk.
+      </div>
+      <p style="font-size:12px; color:#64748b; margin-top:8px;">Spread across meals/snacks — especially important if appetite is reduced (GLP-1) or meal volume is small.</p>
+    </div>
+
+    <div class="card section-fluid">
+      <h3 class="step-title">STEP 3 — Fluid</h3>
+      <p class="subnote subnote-fluid" id="fluidWeightNote">--</p>
+      <div class="grid-2">
+        <div class="stat-box">
+          <p class="stat-label">25–35 mL/kg</p>
+          <p class="stat-value" id="fluidRangeOut">--</p>
+        </div>
+        <div class="stat-box">
+          <p class="stat-label">1 mL/kcal cross-check</p>
+          <p class="stat-value blue" id="fluidKcalOut">--</p>
+        </div>
+      </div>
+      <p style="font-size:12px; color:#64748b; margin-top:8px;">Adjust to thirst, urine color, edema — not just the number. Restrict per protocol if renal/cardiac/hepatic comorbidity present.</p>
+    </div>
+
+    <p class="footnote">Estimates only — clinical judgment, labs, and reassessment at follow-up override calculated values.</p>
+  </div>
+</div>
+
+<script>
+let deficitChoice = 500;
+
+const inputs = ['sex','age','heightFt','heightIn','weightLb','geriatric','onGLP','activityLevel','goal'];
+inputs.forEach(id => {
+  document.getElementById(id).addEventListener('input', calculate);
+  document.getElementById(id).addEventListener('change', calculate);
+});
+
+document.querySelectorAll('.deficit-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.deficit-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    deficitChoice = parseFloat(btn.dataset.val);
+    calculate();
+  });
+});
+
+function calculate() {
+  const sex = document.getElementById('sex').value;
+  const age = parseFloat(document.getElementById('age').value);
+  const heightFt = parseFloat(document.getElementById('heightFt').value);
+  const heightIn = parseFloat(document.getElementById('heightIn').value) || 0;
+  const weightLb = parseFloat(document.getElementById('weightLb').value);
+  const geriatric = document.getElementById('geriatric').checked;
+  const onGLP = document.getElementById('onGLP').checked;
+  const activityFactor = parseFloat(document.getElementById('activityLevel').value);
+  const goal = document.getElementById('goal').value;
+
+  if (!age || !heightFt || !weightLb) {
+    document.getElementById('placeholder').classList.remove('hidden');
+    document.getElementById('results').classList.add('hidden');
+    return;
+  }
+
+  document.getElementById('placeholder').classList.add('hidden');
+  document.getElementById('results').classList.remove('hidden');
+
+  const totalInches = heightFt * 12 + heightIn;
+  const heightCm = totalInches * 2.54;
+  const abwKg = weightLb * 0.453592;
+
+  const inchesOver5ft = Math.max(totalInches - 60, 0);
+  const ibwLb = sex === 'male' ? 106 + 6 * inchesOver5ft : 100 + 5 * inchesOver5ft;
+  const ibwKg = ibwLb * 0.453592;
+
+  const bmi = (weightLb / (totalInches * totalInches)) * 703;
+  const adjBWKg = ibwKg + 0.25 * (abwKg - ibwKg);
+
+  const useAdj = bmi >= 35;
+  const energyWeightKg = useAdj ? adjBWKg : abwKg;
+  const energyWeightLabel = useAdj ? 'Adjusted Body Weight' : 'Actual Body Weight';
+
+  let bmr = sex === 'male'
+    ? (10 * energyWeightKg) + (6.25 * heightCm) - (5 * age) + 5
+    : (10 * energyWeightKg) + (6.25 * heightCm) - (5 * age) - 161;
+
+  let maintenanceKcal = bmr * activityFactor;
+  if (bmi >= 35) maintenanceKcal *= 0.925;
+
+  const deficit = goal === 'loss' ? deficitChoice : 0;
+  let targetKcal = maintenanceKcal - deficit;
+
+  const floor = sex === 'male' ? 1500 : 1200;
+  const floorApplied = goal === 'loss' && targetKcal < floor;
+  if (floorApplied) targetKcal = floor;
+
+  const proteinLow_ABW = 1.2 * abwKg;
+  const proteinLow_IBW = 2.0 * ibwKg;
+  const proteinHigh_IBW = 2.5 * ibwKg;
+
+  let proteinTargetLow, proteinTargetHigh, proteinNote;
+  if (bmi >= 40 || onGLP) {
+    proteinTargetLow = proteinLow_IBW;
+    proteinTargetHigh = proteinHigh_IBW;
+    proteinNote = onGLP
+      ? 'Higher end favored: on GLP-1 therapy (lean mass preservation with reduced intake)'
+      : 'Higher end favored: Class III obesity (higher protein needed for nitrogen balance)';
+  } else {
+    proteinTargetLow = Math.min(proteinLow_ABW, proteinLow_IBW);
+    proteinTargetHigh = Math.max(proteinLow_ABW, proteinLow_IBW);
+    proteinNote = 'Standard range for BMI 30–39 without additional risk factors';
+  }
+
+  const fluidWeightKg = bmi >= 40 ? adjBWKg : abwKg;
+  const fluidWeightLabel = bmi >= 40 ? 'Adjusted Body Weight' : 'Actual Body Weight';
+  const fluidLow = fluidWeightKg * 25;
+  const fluidHigh = fluidWeightKg * 35;
+  const fluidFromKcal = targetKcal;
+
+  // --- Render ---
+  document.getElementById('bmiValue').textContent = bmi.toFixed(1);
+  let catLabel, catColor;
+  if (bmi < 30) { catLabel = 'Not obese (BMI <30) — general adult formulas may apply instead'; catColor = '#d97706'; }
+  else if (bmi < 35) { catLabel = 'Class I Obesity'; catColor = '#2563eb'; }
+  else if (bmi < 40) { catLabel = 'Class II Obesity'; catColor = '#ea580c'; }
+  else { catLabel = 'Class III Obesity (Severe)'; catColor = '#dc2626'; }
+  const catEl = document.getElementById('bmiCategory');
+  catEl.textContent = catLabel;
+  catEl.style.color = catColor;
+
+  document.getElementById('ibwOut').textContent = ibwLb.toFixed(0) + ' lb';
+  document.getElementById('abwOut').textContent = (abwKg / 0.453592).toFixed(0) + ' lb';
+  document.getElementById('adjbwOut').textContent = (adjBWKg / 0.453592).toFixed(0) + ' lb';
+
+  document.getElementById('energyWeightNote').textContent =
+    'Weight used: ' + energyWeightLabel + (useAdj ? ' (BMI ≥35 → 5–10% reduction applied)' : '');
+  document.getElementById('maintenanceOut').textContent = Math.round(maintenanceKcal) + ' kcal/day';
+
+  const deficitSection = document.getElementById('deficitSection');
+  if (goal === 'loss') {
+    deficitSection.classList.remove('hidden');
+    document.getElementById('targetLabel').textContent = 'Target kcal (maintenance − ' + deficitChoice + ')';
+    document.getElementById('targetOut').textContent = Math.round(targetKcal) + ' kcal/day';
+    document.getElementById('lossRateOut').textContent =
+      '≈ ' + (deficitChoice * 7 / 3500).toFixed(1) + ' lb/week estimated loss';
+  } else {
+    deficitSection.classList.add('hidden');
+  }
+
+  const floorAlert = document.getElementById('floorAlert');
+  if (floorApplied) {
+    floorAlert.classList.remove('hidden');
+    floorAlert.textContent = '⚠ Selected deficit fell below the safety floor (' + floor + ' kcal) — floor applied instead. Consider a smaller deficit or closer monitoring.';
+  } else {
+    floorAlert.classList.add('hidden');
+  }
+
+  document.getElementById('geriatricEnergyAlert').classList.toggle('hidden', !(geriatric && goal === 'loss'));
+
+  document.getElementById('proteinRangeOut').textContent =
+    Math.round(proteinTargetLow) + '–' + Math.round(proteinTargetHigh) + ' g/day';
+  document.getElementById('proteinNote').textContent = proteinNote;
+  document.getElementById('geriatricProteinAlert').classList.toggle('hidden', !geriatric);
+
+  document.getElementById('fluidWeightNote').textContent =
+    'Weight used: ' + fluidWeightLabel + (bmi >= 40 ? ' (BMI ≥40)' : '');
+  document.getElementById('fluidRangeOut').textContent =
+    Math.round(fluidLow) + '–' + Math.round(fluidHigh) + ' mL';
+  document.getElementById('fluidKcalOut').textContent = Math.round(fluidFromKcal) + ' mL';
 }
+</script>
+
+</body>
+</html>
